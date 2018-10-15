@@ -13,7 +13,7 @@ import "github.com/JoshuaDoes/spotigo"
 
 func main() {
 	//Initialize a new client
-	c := &soundcloud.Client{Host: "spotigo host here", pass: "spotigo pass key here"}
+	c := &spotigo.Client{Host: "spotigo host here", pass: "spotigo pass key here"}
 
 	//Get metadata and an audio URL
 	res, err := c.GetTrackInfo("https://open.spotify.com/track/1Czngy8R5LkQPs3CCkuKjF")
