@@ -64,6 +64,7 @@ type SpotigoSearchHit struct {
 	ImageURL string                   `json:"image"`
 	Name     string                   `json:"name"`
 	URI      string                   `json:"uri"`
+	ID       string                   `json:"-"` //Track ID, album ID, etc
 	Duration int                      `json:"duration"`
 }
 type SpotigoSearchHitAlbum struct {
@@ -91,6 +92,12 @@ func (c *Client) SearchTracks(query string) (*SpotigoSearchTracks, error) {
 	err = unmarshal(searchJSON, trackResults)
 	if err != nil {
 		return nil, err
+	}
+
+	for i := 0; i < len(trackResults.Hits); i++ {
+		regex := regexp.MustCompile("^(spotify:)(.*)(:)([a-zA-Z0-9]+)(.*)$")
+		id := regex.FindStringSubmatch(trackResults.Hits[i].URI)
+		trackResults.Hits[i].ID = id[len(id)-2]
 	}
 
 	return trackResults, nil
