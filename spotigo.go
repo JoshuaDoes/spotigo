@@ -87,12 +87,14 @@ func (c *Client) SearchTracks(query string) (*SpotigoSearchTracks, error) {
 		return nil, err
 	}
 
-	trackResults := &SpotigoSearchTracks{}
+	searchResults := &SpotigoSearch{}
 
-	err = unmarshal(searchJSON, trackResults)
+	err = unmarshal(searchJSON, searchResults)
 	if err != nil {
 		return nil, err
 	}
+
+	trackResults := &searchResults.Results.Tracks
 
 	for i := 0; i < len(trackResults.Hits); i++ {
 		regex := regexp.MustCompile("^(spotify:)(.*)(:)([a-zA-Z0-9]+)(.*)$")
