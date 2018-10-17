@@ -49,6 +49,32 @@ type SpotigoDate struct {
 	Day   int
 }
 
+type SpotigoPlaylist struct {
+	Length     int                       `json:"length"`
+	Attributes SpotigoPlaylistAttributes `json:"attributes"`
+	Contents   SpotigoPlaylistContents   `json:"contents"`
+
+	//Additional data added by Spotigo
+	UserID     string `json:"-"`
+	PlaylistID string `json:"-"`
+}
+type SpotigoPlaylistAttributes struct {
+	Name string `json:"name"`
+}
+type SpotigoPlaylistContents struct {
+	Position  int                   `json:"pos"`
+	Truncated bool                  `json:"truncated"`
+	Items     []SpotigoPlaylistItem `json:"items"`
+}
+type SpotigoPlaylistItem struct {
+	TrackURI   string                        `json:"uri"`
+	Attributes SpotigoPlaylistItemAttributes `json:"attributes"`
+}
+type SpotigoPlaylistItemAttributes struct {
+	AddedBy   string `json:"added_by"`
+	Timestamp int64  `json:"timestamp"`
+}
+
 type SpotigoSearch struct {
 	Results SpotigoSearchResults `json:"results"` //Search results
 }
@@ -155,6 +181,33 @@ func (c *Client) GetTrackInfo(url string) (*Track, error) {
 	data.Title = trackInfo.Name
 	data.Duration = trackInfo.Duration
 	data.ArtURL = trackOEmbed.ThumbnailURL
+
+	return data, nil
+}
+
+func (c *Client) GetPlaylist(url string) (*SpotigoPlaylist, error) {
+	regex := regexp.MustCompile("^(https:\\/\\/open.spotify.com\\/user\\/|spotify:user:)([a-zA-Z0-9]+)(\\/playlist\\/|:playlist:)([a-zA-Z0-9]+)(.*)$")
+	matches := regex.FindStringSubmatch(url)
+	if len(matches) <= 0 {
+		return nil, errors.New("error finding playlist/user ID")
+	}
+
+	userID := matches[len(matches)-4]
+	playlistID := matches[len(matches)-2]
+
+	data := &SpotigoPlaylist{}
+	data.UserID = userID
+	data.PlaylistID = playlistID
+
+	playlistJSON, err := http.Get(fmt.Sprintf("http://%s/playlist/spotify:user:%s:playlist:%s?pass=%s", c.Host, userID, playlistID, c.Pass))
+	if err != nil {
+		return data, err
+	}
+
+	err = unmarshal(playlistJSON, data)
+	if err != nil {
+		return data, err
+	}
 
 	return data, nil
 }
