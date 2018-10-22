@@ -331,16 +331,18 @@ func (c *Client) GetArtistInfo(url string) (*Artist, error) {
 	}
 
 	data.Title = artistInfo.Name
-	for _, topTrack := range artistInfo.TopTracks[0].Tracks {
-		trackID, err := topTrack.GetID(c.Host, c.Pass)
-		if err != nil {
-			continue
+	if len(artistInfo.TopTracks) > 0 {
+		for _, topTrack := range artistInfo.TopTracks[0].Tracks {
+			trackID, err := topTrack.GetID(c.Host, c.Pass)
+			if err != nil {
+				continue
+			}
+			/*trackInfo, err := c.GetTrackInfo("spotify:track:" + trackID)
+			if err == nil {
+				data.TopTracks = append(data.TopTracks, trackInfo)
+			}*/
+			data.TopTracks = append(data.TopTracks, &Track{TrackID: trackID, URI: "spotify:track:" + trackID})
 		}
-		/*trackInfo, err := c.GetTrackInfo("spotify:track:" + trackID)
-		if err == nil {
-			data.TopTracks = append(data.TopTracks, trackInfo)
-		}*/
-		data.TopTracks = append(data.TopTracks, &Track{TrackID: trackID, URI: "spotify:track:" + trackID})
 	}
 	/*for _, albumGroup := range artistInfo.Albums {
 		for _, album := range albumGroup.Albums {
