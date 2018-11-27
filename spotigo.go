@@ -1,13 +1,17 @@
 package spotigo
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"net/http"
 	"net/url"
 	"regexp"
 )
+
+const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 type Client struct {
 	Host string
@@ -97,20 +101,15 @@ type SpotigoGid struct {
 	ID  string
 }
 
-func (gid *SpotigoGid) GetID(host, pass string) (string, error) {
-	gid.Gid = url.QueryEscape(gid.Gid)
-
-	idJSON, err := http.Get(fmt.Sprintf("http://%s/util/gid2id/?gid=%s&pass=%s", host, gid.Gid, pass))
+func (gid *SpotigoGid) GetID() (string, error) {
+	str, err := base64.StdEncoding.DecodeString(gid.Gid)
 	if err != nil {
 		return "", err
 	}
 
-	err = unmarshal(idJSON, gid)
-	if err != nil {
-		return "", err
-	}
+	id := ConvertTo62(str)
 
-	return gid.ID, nil
+	return id, nil
 }
 
 type SpotigoPlaylist struct {
@@ -276,7 +275,7 @@ func (c *Client) GetTrackInfo(url string) (*Track, error) {
 	}
 	for _, trackArtist := range trackInfo.Artist {
 		artistGid := &SpotigoGid{Gid: trackArtist.Gid}
-		artistID, err := artistGid.GetID(c.Host, c.Pass)
+		artistID, err := artistGid.GetID()
 		if err != nil {
 			continue
 		}
@@ -333,7 +332,7 @@ func (c *Client) GetArtistInfo(url string) (*Artist, error) {
 	data.Title = artistInfo.Name
 	if len(artistInfo.TopTracks) > 0 {
 		for _, topTrack := range artistInfo.TopTracks[0].Tracks {
-			trackID, err := topTrack.GetID(c.Host, c.Pass)
+			trackID, err := topTrack.GetID()
 			if err != nil {
 				continue
 			}
@@ -346,7 +345,7 @@ func (c *Client) GetArtistInfo(url string) (*Artist, error) {
 	}
 	/*for _, albumGroup := range artistInfo.Albums {
 		for _, album := range albumGroup.Albums {
-			albumID, err := album.GetID(c.Host, c.Pass)
+			albumID, err := album.GetID()
 			if err != nil {
 				continue
 			}
@@ -358,7 +357,7 @@ func (c *Client) GetArtistInfo(url string) (*Artist, error) {
 	}
 	for _, singleGroup := range artistInfo.Singles {
 		for _, album := range singleGroup.Albums {
-			albumID, err := album.GetID(c.Host, c.Pass)
+			albumID, err := album.GetID()
 			if err != nil {
 				continue
 			}
@@ -421,7 +420,7 @@ func (c *Client) GetAlbumInfo(url string) (*Album, error) {
 	}
 	for _, albumArtist := range albumInfo.Artist {
 		artistGid := &SpotigoGid{Gid: albumArtist.Gid}
-		artistID, err := artistGid.GetID(c.Host, c.Pass)
+		artistID, err := artistGid.GetID()
 		if err != nil {
 			continue
 		}
@@ -433,7 +432,7 @@ func (c *Client) GetAlbumInfo(url string) (*Album, error) {
 	for discN, albumDisc := range albumInfo.Discs {
 		disc := &Disc{Number: discN}
 		for _, track := range albumDisc.Tracks {
-			trackID, err := track.GetID(c.Host, c.Pass)
+			trackID, err := track.GetID()
 			if err != nil {
 				continue
 			}
@@ -482,4 +481,31 @@ func (c *Client) GetPlaylist(url string) (*SpotigoPlaylist, error) {
 func unmarshal(body *http.Response, target interface{}) error {
 	defer body.Body.Close()
 	return json.NewDecoder(body.Body).Decode(target)
+}
+
+func ConvertTo62(raw []byte) string {
+	bi := big.Int{}
+	bi.SetBytes(raw)
+	rem := big.NewInt(0)
+	base := big.NewInt(62)
+	zero := big.NewInt(0)
+	result := ""
+
+	for bi.Cmp(zero) > 0 {
+		_, rem = bi.DivMod(&bi, base, rem)
+		result += string(alphabet[int(rem.Uint64())])
+	}
+
+	for len(result) < 22 {
+		result += "0"
+	}
+	return reverse(result)
+}
+
+func reverse(s string) string {
+	r := []rune(s)
+	for i, j := 0, len(r)-1; i < len(r)/2; i, j = i+1, j-1 {
+		r[i], r[j] = r[j], r[i]
+	}
+	return string(r)
 }
