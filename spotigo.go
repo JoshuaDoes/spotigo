@@ -30,7 +30,7 @@ type Track struct {
 }
 
 type Artist struct {
-	Title     string
+	Name     string
 	TopTracks []*Track
 	Albums    []*Album
 	Singles   []*Album
