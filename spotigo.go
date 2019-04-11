@@ -30,7 +30,7 @@ type Track struct {
 }
 
 type Artist struct {
-	Name     string
+	Name      string
 	TopTracks []*Track
 	Albums    []*Album
 	Singles   []*Album
@@ -329,7 +329,7 @@ func (c *Client) GetArtistInfo(url string) (*Artist, error) {
 		return data, errors.New("error getting artist thumbnail")
 	}
 
-	data.Title = artistInfo.Name
+	data.Name = artistInfo.Name
 	if len(artistInfo.TopTracks) > 0 {
 		for _, topTrack := range artistInfo.TopTracks[0].Tracks {
 			trackID, err := topTrack.GetID()
